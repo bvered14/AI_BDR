@@ -1,0 +1,15 @@
+# Apollo API Configuration
+APOLLO_API_KEY=your_apollo_api_key_here
+
+# OpenAI API Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Airtable Configuration
+AIRTABLE_API_KEY=your_airtable_api_key_here
+AIRTABLE_BASE_ID=your_airtable_base_id_here
+AIRTABLE_TABLE_NAME=Leads
+
+# Gmail Configuration
+GMAIL_CREDENTIALS_FILE=gmail_credentials.json
+GMAIL_TOKEN_FILE=gmail_token.json
+SENDER_EMAIL=your_email@gmail.com
