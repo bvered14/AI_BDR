@@ -1,0 +1,26 @@
+{
+  "name": "bdr-lead-pipeline",
+  "version": "1.0.0",
+  "description": "Cheapest Lambda-based BDR lead generation pipeline",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "remove": "serverless remove",
+    "logs": "serverless logs -f run-pipeline",
+    "invoke": "serverless invoke -f run-pipeline -d '{\"max_leads\": 5}'"
+  },
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-python-requirements": "^6.0.0"
+  },
+  "keywords": [
+    "lambda",
+    "serverless",
+    "bdr",
+    "lead-generation",
+    "airtable",
+    "apollo"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
