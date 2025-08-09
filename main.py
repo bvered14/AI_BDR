@@ -28,6 +28,9 @@ from email_sender import GmailSender
 
 class GTMLeadPipeline:
     def __init__(self):
+        # Validate required environment variables FIRST
+        Config.validate_required()
+        
         self.apollo_api = ApolloAPI()
         self.lead_processor = LeadProcessor()
         self.airtable_api = AirtableAPI()
@@ -35,15 +38,22 @@ class GTMLeadPipeline:
         self.email_sender = GmailSender()
     
     def run_pipeline(self, max_leads: int = 10, min_score: float = 0.6, 
-                    preview_only: bool = False, no_email: bool = False) -> Dict[str, Any]:
+                    preview_only: bool = None, no_email: bool = False) -> Dict[str, Any]:
         """
         Run the complete GTM lead generation pipeline
-        """
-        print("="*60)
-        print("GTM LEAD GENERATION PIPELINE")
-        print("="*60)
         
+        Args:
+            max_leads: Maximum number of leads to fetch
+            min_score: Minimum score threshold for leads
+            preview_only: Override Config.PREVIEW_ONLY setting
+            no_email: Skip email sending entirely
+        """
         start_time = time.time()
+        
+        # Use Config.PREVIEW_ONLY if preview_only is None
+        if preview_only is None:
+            preview_only = Config.PREVIEW_ONLY
+        
         results = {
             'leads_fetched': 0,
             'leads_processed': 0,
@@ -56,7 +66,7 @@ class GTMLeadPipeline:
         try:
             # Step 1: Validate configuration
             print("\n1. Validating configuration...")
-            Config.validate_config()
+            Config.validate_required()
             print("✓ Configuration validated")
             
             # Step 2: Fetch leads from Apollo
@@ -98,16 +108,15 @@ class GTMLeadPipeline:
             
             print(f"✓ Generated {len(emails)} personalized emails")
             
-            # Preview first email if requested
-            if preview_only and emails:
-                print("\n" + "="*50)
-                print("EMAIL PREVIEW (First Lead)")
-                print("="*50)
-                self.outreach_generator.preview_email(processed_leads[0])
-                return results
-            
-            # Step 6: Send emails (if not disabled)
-            if not no_email and emails:
+            # Step 6: Handle email sending based on preview mode
+            if preview_only:
+                print(f"\n6. PREVIEW MODE - Emails will be displayed but not sent")
+                print(f"   To send emails, set PREVIEW_ONLY=false in your .env file")
+                results['emails_sent'] = 0
+            elif no_email:
+                print("\n6. Skipping email sending (--no-email flag)")
+                results['emails_sent'] = 0
+            elif emails:
                 print(f"\n6. Sending {len(emails)} emails via Gmail...")
                 email_results = self.email_sender.send_emails_to_leads(emails)
                 
@@ -126,10 +135,9 @@ class GTMLeadPipeline:
                 
                 if summary['failed_emails']:
                     print(f"  Failed emails: {', '.join(summary['failed_emails'])}")
-            elif no_email:
-                print("\n6. Skipping email sending (--no-email flag)")
             else:
                 print("\n6. No emails to send")
+                results['emails_sent'] = 0
             
             # Calculate execution time
             execution_time = time.time() - start_time
@@ -145,11 +153,16 @@ class GTMLeadPipeline:
             print(f"Emails generated: {results['emails_generated']}")
             print(f"Emails sent: {results['emails_sent']}")
             
+            if preview_only:
+                print(f"Mode: PREVIEW (emails displayed but not sent)")
+            
             return results
             
         except Exception as e:
-            print(f"\n❌ Pipeline failed with error: {e}")
+            execution_time = time.time() - start_time
+            results['execution_time'] = round(execution_time, 2)
             results['errors'].append(str(e))
+            print(f"\n❌ Pipeline failed: {e}")
             return results
     
     def run_demo(self):

@@ -161,30 +161,32 @@ Best regards,
         """
         Generate personalized emails for a list of leads
         """
-        print(f"Generating personalized emails for {len(leads)} leads...")
-        
         emails = []
-        for i, lead in enumerate(leads, 1):
-            print(f"Generating email {i}/{len(leads)} for {lead.get('first_name', '')} {lead.get('last_name', '')}")
-            
-            email_data = self.generate_personalized_email(lead)
-            email_data['lead'] = lead
-            emails.append(email_data)
         
-        print(f"Generated {len(emails)} personalized emails")
+        for lead in leads:
+            email_data = self.generate_personalized_email(lead)
+            
+            # Add lead information to email data
+            email_data['lead'] = lead
+            email_data['to_email'] = lead.get('email', '')
+            email_data['to_name'] = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+            
+            emails.append(email_data)
+            
+            # Preview mode: show email in console
+            if Config.PREVIEW_ONLY:
+                self.preview_email(lead, email_data)
+        
         return emails
     
-    def preview_email(self, lead: Dict[str, Any]) -> None:
+    def preview_email(self, lead: Dict[str, Any], email_data: Dict[str, Any]) -> None:
         """
-        Preview the generated email for a lead
+        Preview email in console (for preview mode)
         """
-        email_data = self.generate_personalized_email(lead)
-        
-        print("\n" + "="*50)
-        print("EMAIL PREVIEW")
-        print("="*50)
-        print(f"To: {lead.get('first_name', '')} {lead.get('last_name', '')} <{lead.get('email', '')}>")
-        print(f"Subject: {email_data['subject']}")
-        print("-"*50)
-        print(email_data['body'])
-        print("="*50)
+        print(f"\n📧 EMAIL PREVIEW for {lead.get('first_name', '')} {lead.get('last_name', '')} ({lead.get('email', '')})")
+        print(f"   Company: {lead.get('company_name', '')} ({lead.get('company_size', '')} employees)")
+        print(f"   Title: {lead.get('title', '')}")
+        print(f"   Score: {lead.get('score', 0)} - Reasons: {', '.join(lead.get('score_reasons', []))}")
+        print(f"   Subject: {email_data.get('subject', 'No subject')}")
+        print(f"   Body: {email_data.get('body', 'No body')[:200]}...")
+        print("-" * 80)

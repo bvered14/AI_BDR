@@ -7,12 +7,16 @@ from typing import Dict, Any, List
 import sys
 sys.path.append('/opt/python/lib/python3.9/site-packages')
 from process_leads import LeadProcessor
+from config import Config
 
 def lambda_handler(event, context):
     """
     Lambda function to process and rank leads
     """
     try:
+        # Validate required environment variables FIRST
+        Config.validate_required()
+        
         # Get leads from previous step
         leads = event.get('leads', [])
         min_score = float(os.environ.get('MIN_SCORE', 0.6))

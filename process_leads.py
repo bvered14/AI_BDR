@@ -3,6 +3,7 @@ from config import Config
 
 class LeadProcessor:
     def __init__(self):
+        # Exposed weights for transparency and easy tweaking
         self.industry_weights = {
             'technology': 1.0,
             'software': 1.0,
@@ -23,58 +24,67 @@ class LeadProcessor:
             'Europe': 0.9,
             'Other': 0.5
         }
+        
+        # Company size scoring ranges
+        self.size_ranges = {
+            '50-100': (50, 100, 0.8),
+            '100-300': (100, 300, 1.0),
+            '300-500': (300, 500, 0.7)
+        }
     
-    def calculate_industry_score(self, industry: str) -> float:
+    def calculate_industry_score(self, industry: str) -> tuple[float, str]:
         """
-        Calculate industry relevance score
+        Calculate industry relevance score and return reason
         """
         if not industry:
-            return 0.5
+            return 0.5, "industry:unknown"
         
         industry_lower = industry.lower()
         
         # Check for exact matches first
         for key, weight in self.industry_weights.items():
             if key in industry_lower:
-                return weight
+                return weight, f"industry:{key}"
         
         # Check for partial matches
         for key, weight in self.industry_weights.items():
             if any(word in industry_lower for word in key.split()):
-                return weight * 0.8
+                return weight * 0.8, f"industry:{key}(partial)"
         
-        return 0.3  # Default score for unknown industries
+        return 0.3, "industry:unknown"
     
-    def calculate_company_size_score(self, company_size: int) -> float:
+    def calculate_company_size_score(self, company_size: int) -> tuple[float, str]:
         """
-        Calculate company size score (prefer mid-size companies)
+        Calculate company size score and return reason
         """
         if not company_size or company_size == 0:
-            return 0.5
+            return 0.5, "size:unknown"
         
-        # Optimal range: 100-300 employees
-        if 100 <= company_size <= 300:
-            return 1.0
-        elif 50 <= company_size < 100:
-            return 0.8
-        elif 300 < company_size <= 500:
-            return 0.7
+        # Check size ranges
+        for range_name, (min_size, max_size, weight) in self.size_ranges.items():
+            if min_size <= company_size <= max_size:
+                return weight, f"size:{range_name}"
+        
+        # Outside preferred ranges
+        if company_size < 50:
+            return 0.3, "size:too-small"
         else:
-            return 0.3
+            return 0.3, "size:too-large"
     
-    def calculate_region_score(self, region: str) -> float:
+    def calculate_region_score(self, region: str) -> tuple[float, str]:
         """
-        Calculate region score
+        Calculate region score and return reason
         """
-        return self.region_weights.get(region, 0.5)
+        weight = self.region_weights.get(region, 0.5)
+        return weight, f"region:{region.lower()}"
     
-    def calculate_total_score(self, lead: Dict[str, Any]) -> float:
+    def calculate_total_score(self, lead: Dict[str, Any]) -> tuple[float, List[str]]:
         """
-        Calculate total lead score based on all criteria
+        Calculate total lead score and return reasons
         """
-        industry_score = self.calculate_industry_score(lead.get('company_industry', ''))
-        company_size_score = self.calculate_company_size_score(lead.get('company_size', 0))
-        region_score = self.calculate_region_score(lead.get('region', ''))
+        industry_score, industry_reason = self.calculate_industry_score(lead.get('company_industry', ''))
+        company_size_score, size_reason = self.calculate_company_size_score(lead.get('company_size', 0))
+        region_score, region_reason = self.calculate_region_score(lead.get('region', ''))
         
         total_score = (
             industry_score * Config.INDUSTRY_WEIGHT +
@@ -82,24 +92,40 @@ class LeadProcessor:
             region_score * Config.REGION_WEIGHT
         )
         
-        return round(total_score, 3)
+        # Build reasons list
+        reasons = []
+        if industry_score > 0.7:
+            reasons.append(f"+{industry_reason}")
+        if company_size_score > 0.7:
+            reasons.append(f"+{size_reason}")
+        if region_score > 0.7:
+            reasons.append(f"+{region_reason}")
+        
+        return round(total_score, 3), reasons
     
     def rank_leads(self, leads: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Rank leads by their total score
+        Rank leads by their total score with transparency
         """
         print("Processing and ranking leads...")
         
         for lead in leads:
-            lead['score'] = self.calculate_total_score(lead)
-            lead['industry_score'] = self.calculate_industry_score(lead.get('company_industry', ''))
-            lead['company_size_score'] = self.calculate_company_size_score(lead.get('company_size', 0))
-            lead['region_score'] = self.calculate_region_score(lead.get('region', ''))
+            score, reasons = self.calculate_total_score(lead)
+            lead['score'] = score
+            lead['score_reasons'] = reasons
+            lead['industry_score'] = self.calculate_industry_score(lead.get('company_industry', ''))[0]
+            lead['company_size_score'] = self.calculate_company_size_score(lead.get('company_size', 0))[0]
+            lead['region_score'] = self.calculate_region_score(lead.get('region', ''))[0]
         
         # Sort by score in descending order
         ranked_leads = sorted(leads, key=lambda x: x['score'], reverse=True)
         
-        print(f"Ranked {len(ranked_leads)} leads")
+        # Print scoring transparency
+        print(f"\n📊 Scoring Summary:")
+        print(f"   Industry Weight: {Config.INDUSTRY_WEIGHT}")
+        print(f"   Company Size Weight: {Config.COMPANY_SIZE_WEIGHT}")
+        print(f"   Region Weight: {Config.REGION_WEIGHT}")
+        
         return ranked_leads
     
     def filter_high_quality_leads(self, leads: List[Dict[str, Any]], 

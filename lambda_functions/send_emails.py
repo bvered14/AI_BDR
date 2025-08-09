@@ -7,12 +7,16 @@ from typing import Dict, Any, List
 import sys
 sys.path.append('/opt/python/lib/python3.9/site-packages')
 from email_sender import GmailSender
+from config import Config
 
 def lambda_handler(event, context):
     """
     Lambda function to send emails via Gmail
     """
     try:
+        # Validate required environment variables FIRST
+        Config.validate_required()
+        
         # Get emails from previous step
         emails = event.get('emails', [])
         

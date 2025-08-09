@@ -1,16 +1,16 @@
 import requests
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from config import Config
 
 
 class AirtableAPI:
     """Handles interactions with Airtable API for storing lead data"""
     
-    def __init__(self):
+    def __init__(self, table_name: Optional[str] = None):
         self.api_key = Config.AIRTABLE_API_KEY
         self.base_id = Config.AIRTABLE_BASE_ID
-        self.table_name = Config.AIRTABLE_TABLE_NAME
+        self.table_name = table_name or Config.AIRTABLE_TABLE_NAME
         self.base_url = f"https://api.airtable.com/v0/{self.base_id}"
         self.headers = {
             'Authorization': f'Bearer {self.api_key}',
@@ -23,6 +23,88 @@ class AirtableAPI:
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         }
+    
+    def find_existing_record(self, email: str, company_name: str = None) -> Optional[str]:
+        """
+        Find existing record by email (primary) or name + company (fallback)
+        Returns record ID if found, None otherwise
+        """
+        try:
+            # First try to find by email
+            if email:
+                filter_formula = f"{{Email}} = '{email}'"
+                response = requests.get(
+                    f"{self.base_url}/{self.table_name}",
+                    headers=self.headers,
+                    params={'filterByFormula': filter_formula}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('records'):
+                        return data['records'][0]['id']
+            
+            # Fallback: try to find by name + company
+            if company_name:
+                name_field = f"{{Name}} = '{company_name}'"
+                response = requests.get(
+                    f"{self.base_url}/{self.table_name}",
+                    headers=self.headers,
+                    params={'filterByFormula': name_field}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('records'):
+                        return data['records'][0]['id']
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error finding existing record: {e}")
+            return None
+    
+    def upsert_record(self, record_data: Dict[str, Any]) -> bool:
+        """
+        Upsert a record - update if exists, create if not
+        """
+        try:
+            email = record_data['fields'].get('Email', '')
+            company_name = record_data['fields'].get('Company', '')
+            
+            # Check if record exists
+            existing_id = self.find_existing_record(email, company_name)
+            
+            if existing_id:
+                # Update existing record
+                response = requests.patch(
+                    f"{self.base_url}/{self.table_name}/{existing_id}",
+                    headers=self.headers,
+                    json=record_data
+                )
+                if response.status_code == 200:
+                    print(f"✅ Updated existing record: {email or company_name}")
+                    return True
+                else:
+                    print(f"❌ Failed to update record: {response.status_code}")
+                    return False
+            else:
+                # Create new record
+                response = requests.post(
+                    f"{self.base_url}/{self.table_name}",
+                    headers=self.headers,
+                    json=record_data
+                )
+                if response.status_code == 200:
+                    print(f"✅ Created new record: {email or company_name}")
+                    return True
+                else:
+                    print(f"❌ Failed to create record: {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            print(f"Error upserting record: {e}")
+            return False
     
     def prepare_data_for_airtable(self, leads: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Prepare lead data for Airtable format"""
@@ -39,11 +121,13 @@ class AirtableAPI:
                     'Industry': lead.get('company_industry', ''),
                     'Region': lead.get('region', ''),
                     'Score': lead.get('score', 0),
+                    'Score Reasons': ', '.join(lead.get('score_reasons', [])),
                     'LinkedIn URL': lead.get('linkedin_url', ''),
                     'Phone': lead.get('phone', ''),
                     'Location': lead.get('location', ''),
                     'Processed Date': time.strftime('%Y-%m-%d'),
-                    'Status': 'New Lead'
+                    'Status': 'New Lead',
+                    'Outreach Message': lead.get('outreach_message', '')
                 }
             }
             records.append(record)
@@ -84,38 +168,21 @@ class AirtableAPI:
             return False
     
     def write_leads_to_airtable(self, leads: List[Dict[str, Any]]) -> bool:
-        """Write leads to Airtable in batches"""
+        """Write leads to Airtable using upsert to prevent duplicates"""
         try:
             records = self.prepare_data_for_airtable(leads)
             
-            # Airtable has a limit of 10 records per request
-            batch_size = 10
             success_count = 0
+            total_count = len(records)
             
-            for i in range(0, len(records), batch_size):
-                batch = records[i:i + batch_size]
-                
-                payload = {
-                    'records': batch
-                }
-                
-                response = requests.post(
-                    f"{self.base_url}/{self.table_name}",
-                    headers=self.headers,
-                    json=payload
-                )
-                
-                if response.status_code == 200:
-                    success_count += len(batch)
-                    print(f"Successfully wrote batch of {len(batch)} records to Airtable")
-                else:
-                    print(f"Failed to write batch to Airtable: {response.status_code} - {response.text}")
-                
-                time.sleep(0.2)  # Rate limiting
+            for record in records:
+                if self.upsert_record(record):
+                    success_count += 1
+                time.sleep(0.1)  # Rate limiting
             
-            print(f"Total records written to Airtable: {success_count}")
-            return success_count == len(records)
-            
+            print(f"✅ Successfully upserted {success_count}/{total_count} leads to Airtable")
+            return success_count == total_count
+                
         except Exception as e:
             print(f"Error writing leads to Airtable: {e}")
             return False

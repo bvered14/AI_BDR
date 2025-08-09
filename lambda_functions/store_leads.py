@@ -7,12 +7,16 @@ from typing import Dict, Any, List
 import sys
 sys.path.append('/opt/python/lib/python3.9/site-packages')
 from airtable_api import AirtableAPI
+from config import Config
 
 def lambda_handler(event, context):
     """
     Lambda function to store leads in Airtable
     """
     try:
+        # Validate required environment variables FIRST
+        Config.validate_required()
+        
         # Get processed leads from previous step
         processed_leads = event.get('processed_leads', [])
         

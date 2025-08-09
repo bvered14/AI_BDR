@@ -7,12 +7,16 @@ from typing import Dict, Any, List
 import sys
 sys.path.append('/opt/python/lib/python3.9/site-packages')
 from apollo_api import ApolloAPI
+from config import Config
 
 def lambda_handler(event, context):
     """
     Lambda function to fetch leads from Apollo API
     """
     try:
+        # Validate required environment variables FIRST
+        Config.validate_required()
+        
         # Get configuration from environment variables
         max_leads = int(os.environ.get('MAX_LEADS', 10))
         

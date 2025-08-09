@@ -11,7 +11,7 @@ class Config:
     
     # OpenAI Configuration
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-    OPENAI_MODEL = 'gpt-4'
+    OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')  # Cost-optimized default
     
     # Airtable Configuration
     AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
@@ -29,7 +29,7 @@ class Config:
     COMPANY_SIZE_MAX = 500
     REGIONS = ['North America', 'Europe']
     
-    # Scoring Weights
+    # Scoring Weights (exposed for transparency)
     INDUSTRY_WEIGHT = 0.4
     COMPANY_SIZE_WEIGHT = 0.3
     REGION_WEIGHT = 0.3
@@ -38,12 +38,15 @@ class Config:
     EMAIL_SUBJECT = "Quick question about your tech stack"
     MAX_LEADS_TO_PROCESS = 10
     
+    # Pipeline Settings
+    PREVIEW_ONLY = os.getenv('PREVIEW_ONLY', 'true').lower() == 'true'  # Default to preview mode
+    
     @classmethod
-    def validate_config(cls):
-        """Validate that all required environment variables are set"""
+    def validate_required(cls):
+        """Validate that all required environment variables are set - FAIL FAST"""
         required_vars = [
             'APOLLO_API_KEY',
-            'OPENAI_API_KEY',
+            'OPENAI_API_KEY', 
             'AIRTABLE_API_KEY',
             'AIRTABLE_BASE_ID',
             'SENDER_EMAIL'
@@ -55,6 +58,13 @@ class Config:
                 missing_vars.append(var)
         
         if missing_vars:
-            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+            raise ValueError(f"❌ Missing required environment variables: {', '.join(missing_vars)}\n"
+                           f"Please check your .env file or environment variables.")
         
+        print("✅ All required environment variables are set")
         return True
+
+    @classmethod
+    def validate_config(cls):
+        """Legacy method - use validate_required() instead"""
+        return cls.validate_required()
