@@ -32,6 +32,12 @@ MANIFEST
 *.manifest
 *.spec
 
+# Cache files
+cache/
+*.cache
+apollo_cache.json
+apollo_cache_metadata.json
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

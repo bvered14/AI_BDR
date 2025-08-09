@@ -99,10 +99,46 @@ A complete Python MVP for automated B2B lead generation, processing, and outreac
 2. **Enable Gmail API**
    - Enable Gmail API only (Google Sheets API no longer needed)
 
-3. **Create OAuth 2.0 for Gmail**
-   - Go to APIs & Services > Credentials
-   - Create OAuth 2.0 Client ID
-   - Download as `gmail_credentials.json`
+## 💾 Caching System
+
+The pipeline includes a smart caching system to save Apollo API credits during development and testing:
+
+### How It Works
+
+- **Automatic Caching**: Apollo API responses are automatically cached locally
+- **Cache Expiry**: Cache expires after 24 hours (configurable)
+- **Smart Loading**: Subsequent runs use cached data instead of hitting the API
+- **Force Refresh**: Option to bypass cache when needed
+
+### Cache Management
+
+```bash
+# Check cache status
+python main.py --cache-status
+
+# Clear cache
+python main.py --clear-cache
+
+# Force refresh (ignore cache)
+python main.py --force-refresh
+
+# Or use the dedicated cache manager
+python cache_manager.py status
+python cache_manager.py clear
+python cache_manager.py info
+```
+
+### Cache Benefits
+
+- **Save API Credits**: No repeated API calls during development
+- **Faster Testing**: Instant results from cache
+- **Offline Development**: Work without internet connection
+- **Cost Control**: Perfect for MVP development and testing
+
+### Cache Files
+
+- `cache/apollo_leads_cache.json` - Cached lead data
+- `cache/apollo_cache_metadata.json` - Cache metadata and expiry info
 
 ## 🚀 Usage
 

@@ -38,7 +38,8 @@ class GTMLeadPipeline:
         self.email_sender = GmailSender()
     
     def run_pipeline(self, max_leads: int = 5, min_score: float = 0.6, 
-                    preview_only: bool = None, no_email: bool = False) -> Dict[str, Any]:
+                    preview_only: bool = None, no_email: bool = False, 
+                    force_refresh: bool = False) -> Dict[str, Any]:
         """
         Run the complete GTM lead generation pipeline
         
@@ -47,6 +48,7 @@ class GTMLeadPipeline:
             min_score: Minimum score threshold for leads
             preview_only: Override Config.PREVIEW_ONLY setting
             no_email: Skip email sending entirely
+            force_refresh: Force refresh from Apollo API (ignore cache)
         """
         start_time = time.time()
         
@@ -69,9 +71,13 @@ class GTMLeadPipeline:
             Config.validate_required()
             print("✓ Configuration validated")
             
+            # Step 1.5: Show cache status
+            print("\n1.5. Checking Apollo API cache...")
+            self.apollo_api.print_cache_status()
+            
             # Step 2: Fetch leads from Apollo
             print(f"\n2. Fetching up to {max_leads} leads from Apollo API...")
-            leads = self.apollo_api.fetch_leads(max_leads)
+            leads = self.apollo_api.fetch_leads(max_leads, force_refresh=force_refresh)
             results['leads_fetched'] = len(leads)
             
             if not leads:
@@ -255,6 +261,12 @@ def main():
                        help='Only preview emails without sending')
     parser.add_argument('--no-email', action='store_true',
                        help='Skip email sending')
+    parser.add_argument('--force-refresh', action='store_true',
+                       help='Force refresh from Apollo API (ignore cache)')
+    parser.add_argument('--cache-status', action='store_true',
+                       help='Show Apollo API cache status')
+    parser.add_argument('--clear-cache', action='store_true',
+                       help='Clear Apollo API cache')
     parser.add_argument('--demo', action='store_true',
                        help='Run in demo mode with sample data')
     
@@ -266,12 +278,18 @@ def main():
     try:
         if args.demo:
             pipeline.run_demo()
+        elif args.cache_status:
+            pipeline.apollo_api.print_cache_status()
+        elif args.clear_cache:
+            pipeline.apollo_api.clear_cache()
+            print("✅ Cache cleared successfully")
         else:
             results = pipeline.run_pipeline(
                 max_leads=args.max_leads,
                 min_score=args.min_score,
                 preview_only=args.preview_only,
-                no_email=args.no_email
+                no_email=args.no_email,
+                force_refresh=args.force_refresh
             )
             
             if not results['success']:

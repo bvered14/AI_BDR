@@ -6,7 +6,14 @@ class OutreachGenerator:
     def __init__(self):
         # Initialize OpenAI client only if API key is available
         if Config.OPENAI_API_KEY:
-            self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+            try:
+                # For newer OpenAI library versions (1.3+)
+                self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+            except Exception as e:
+                # Fallback for any initialization issues
+                print(f"Warning: OpenAI client initialization issue: {e}")
+                print("Will use fallback email generation instead")
+                self.client = None
         else:
             self.client = None
         self.model = Config.OPENAI_MODEL
