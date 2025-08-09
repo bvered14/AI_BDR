@@ -9,7 +9,7 @@ provider:
   memorySize: 256    # Minimum memory for cost optimization
   timeout: 300       # 5 minutes max
   environment:
-    MAX_LEADS: 10
+    MAX_LEADS: 5
     MIN_SCORE: 0.6
   iam:
     role:
@@ -48,7 +48,7 @@ functions:
     memorySize: 256
     timeout: 60
     environment:
-      AIRTABLE_API_KEY: ${ssm:/bdr-pipeline/airtable-api-key}
+      AIRTABLE_PAT: ${ssm:/bdr-pipeline/airtable-pat}
       AIRTABLE_BASE_ID: ${ssm:/bdr-pipeline/airtable-base-id}
       AIRTABLE_TABLE_NAME: Leads
 

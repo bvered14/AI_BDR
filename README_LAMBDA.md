@@ -82,7 +82,7 @@ npm run logs
 All API keys are stored securely in AWS Systems Manager Parameter Store:
 - `/bdr-pipeline/apollo-api-key`
 - `/bdr-pipeline/openai-api-key`
-- `/bdr-pipeline/airtable-api-key`
+- `/bdr-pipeline/airtable-pat`
 - `/bdr-pipeline/airtable-base-id`
 - `/bdr-pipeline/sender-email`
 

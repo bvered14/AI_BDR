@@ -8,19 +8,20 @@ class AirtableAPI:
     """Handles interactions with Airtable API for storing lead data"""
     
     def __init__(self, table_name: Optional[str] = None):
-        self.api_key = Config.AIRTABLE_API_KEY
+        self.pat = Config.AIRTABLE_PAT  # Personal Access Token
         self.base_id = Config.AIRTABLE_BASE_ID
         self.table_name = table_name or Config.AIRTABLE_TABLE_NAME
+        self.tables = Config.AIRTABLE_TABLES  # List of all tables
         self.base_url = f"https://api.airtable.com/v0/{self.base_id}"
         self.headers = {
-            'Authorization': f'Bearer {self.api_key}',
+            'Authorization': f'Bearer {self.pat}',
             'Content-Type': 'application/json'
         }
     
     def create_headers(self) -> Dict[str, str]:
         """Create headers for Airtable API requests"""
         return {
-            'Authorization': f'Bearer {self.api_key}',
+            'Authorization': f'Bearer {self.pat}',
             'Content-Type': 'application/json'
         }
     
@@ -215,21 +216,39 @@ class AirtableAPI:
             print(f"Error in push_leads: {e}")
             return False
     
+    def get_table_names(self) -> List[str]:
+        """Get list of available table names"""
+        return [table.strip() for table in self.tables]
+    
+    def test_all_tables(self) -> Dict[str, bool]:
+        """Test connection to all configured tables"""
+        results = {}
+        for table in self.get_table_names():
+            try:
+                response = requests.get(
+                    f"{self.base_url}/{table}?maxRecords=1",
+                    headers=self.headers
+                )
+                results[table] = response.status_code == 200
+                if results[table]:
+                    print(f"✅ Table '{table}' connection successful")
+                else:
+                    print(f"❌ Table '{table}' connection failed: {response.status_code}")
+            except Exception as e:
+                print(f"❌ Table '{table}' connection error: {e}")
+                results[table] = False
+        return results
+
     def test_connection(self) -> bool:
-        """Test the connection to Airtable"""
-        try:
-            response = requests.get(
-                f"{self.base_url}/{self.table_name}?maxRecords=1",
-                headers=self.headers
-            )
-            
-            if response.status_code == 200:
-                print("Airtable connection successful")
-                return True
-            else:
-                print(f"Airtable connection failed: {response.status_code} - {response.text}")
-                return False
-                
-        except Exception as e:
-            print(f"Error testing Airtable connection: {e}")
-            return False
+        """Test the connection to Airtable (tests all configured tables)"""
+        print(f"🔍 Testing connection to {len(self.get_table_names())} tables...")
+        results = self.test_all_tables()
+        all_successful = all(results.values())
+        
+        if all_successful:
+            print("✅ All Airtable tables accessible")
+        else:
+            failed_tables = [table for table, success in results.items() if not success]
+            print(f"❌ Failed to connect to tables: {', '.join(failed_tables)}")
+        
+        return all_successful

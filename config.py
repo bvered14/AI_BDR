@@ -14,9 +14,10 @@ class Config:
     OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')  # Cost-optimized default
     
     # Airtable Configuration
-    AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
+    AIRTABLE_PAT = os.getenv('AIRTABLE_PAT')  # Personal Access Token
     AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID')
-    AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME', 'Leads')
+    AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME', 'Leads')  # Default table
+    AIRTABLE_TABLES = os.getenv('AIRTABLE_TABLES', 'Leads').split(',')  # Multiple tables (comma-separated)
     
     # Gmail Configuration
     GMAIL_CREDENTIALS_FILE = os.getenv('GMAIL_CREDENTIALS_FILE', 'gmail_credentials.json')
@@ -36,7 +37,7 @@ class Config:
     
     # Email Settings
     EMAIL_SUBJECT = "Quick question about your tech stack"
-    MAX_LEADS_TO_PROCESS = 10
+    MAX_LEADS_TO_PROCESS = 5  # Reduced from 10 to 5 for MVP
     
     # Pipeline Settings
     PREVIEW_ONLY = os.getenv('PREVIEW_ONLY', 'true').lower() == 'true'  # Default to preview mode
@@ -47,7 +48,7 @@ class Config:
         required_vars = [
             'APOLLO_API_KEY',
             'OPENAI_API_KEY', 
-            'AIRTABLE_API_KEY',
+            'AIRTABLE_PAT',
             'AIRTABLE_BASE_ID',
             'SENDER_EMAIL'
         ]

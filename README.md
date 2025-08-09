@@ -64,7 +64,7 @@ A complete Python MVP for automated B2B lead generation, processing, and outreac
    ```
    APOLLO_API_KEY=your_apollo_api_key_here
    OPENAI_API_KEY=your_openai_api_key_here
-   AIRTABLE_API_KEY=your_airtable_api_key_here
+   AIRTABLE_PAT=your_airtable_personal_access_token_here
    AIRTABLE_BASE_ID=your_airtable_base_id_here
    AIRTABLE_TABLE_NAME=Leads
    SENDER_EMAIL=your_email@gmail.com
@@ -76,10 +76,10 @@ A complete Python MVP for automated B2B lead generation, processing, and outreac
    - Go to [Airtable](https://airtable.com/) and create an account
    - Create a new base or use an existing one
 
-2. **Get Your API Key**
+2. **Get Your Personal Access Token**
    - Go to your [Airtable Account](https://airtable.com/account)
-   - Generate a new API key
-   - Copy the API key to your `.env` file
+   - Generate a new Personal Access Token
+   - Copy the token to your `.env` file as `AIRTABLE_PAT`
 
 3. **Get Your Base ID**
    - Open your Airtable base

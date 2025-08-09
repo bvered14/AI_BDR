@@ -37,7 +37,7 @@ class GTMLeadPipeline:
         self.outreach_generator = OutreachGenerator()
         self.email_sender = GmailSender()
     
-    def run_pipeline(self, max_leads: int = 10, min_score: float = 0.6, 
+    def run_pipeline(self, max_leads: int = 5, min_score: float = 0.6, 
                     preview_only: bool = None, no_email: bool = False) -> Dict[str, Any]:
         """
         Run the complete GTM lead generation pipeline
@@ -247,8 +247,8 @@ class GTMLeadPipeline:
 
 def main():
     parser = argparse.ArgumentParser(description='GTM Lead Generation Pipeline')
-    parser.add_argument('--max-leads', type=int, default=10,
-                       help='Maximum number of leads to fetch (default: 10)')
+    parser.add_argument('--max-leads', type=int, default=5,
+                       help='Maximum number of leads to fetch (default: 5)')
     parser.add_argument('--min-score', type=float, default=0.6,
                        help='Minimum score threshold for leads (default: 0.6)')
     parser.add_argument('--preview-only', action='store_true',

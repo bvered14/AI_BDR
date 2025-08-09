@@ -43,11 +43,11 @@ aws ssm put-parameter \
     --type "SecureString" \
     --overwrite
 
-# Airtable API Key
-read -p "Enter your Airtable API Key: " AIRTABLE_API_KEY
+# Airtable Personal Access Token
+read -p "Enter your Airtable Personal Access Token: " AIRTABLE_PAT
 aws ssm put-parameter \
-    --name "/bdr-pipeline/airtable-api-key" \
-    --value "$AIRTABLE_API_KEY" \
+    --name "/bdr-pipeline/airtable-pat" \
+    --value "$AIRTABLE_PAT" \
     --type "SecureString" \
     --overwrite
 

@@ -5,9 +5,10 @@ APOLLO_API_KEY=your_apollo_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 
 # Airtable Configuration
-AIRTABLE_API_KEY=your_airtable_api_key_here
+AIRTABLE_PAT=your_airtable_personal_access_token_here
 AIRTABLE_BASE_ID=your_airtable_base_id_here
 AIRTABLE_TABLE_NAME=Leads
+AIRTABLE_TABLES=Leads,Companies,Contacts
 
 # Gmail Configuration
 GMAIL_CREDENTIALS_FILE=gmail_credentials.json
