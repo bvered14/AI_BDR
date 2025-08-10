@@ -17,8 +17,8 @@ GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json
 GMAIL_TOKEN_FILE=credentials/gmail_token.json
 
 # Pipeline Configuration
-MAX_LEADS_TO_PROCESS=5
-JOB_TITLES=["VP Engineering", "CTO", "Head of DevOps", "Engineering Manager"]
-COMPANY_SIZE_MIN=10
-COMPANY_SIZE_MAX=1000
+MAX_LEADS_TO_PROCESS=2
+JOB_TITLES=["CTO", "Head of Security", "Chief Technology Officer", "VP of Engineering"]
+COMPANY_SIZE_MIN=50
+COMPANY_SIZE_MAX=500
 REGIONS=["North America", "Europe"]

@@ -1,6 +1,6 @@
 from openai import OpenAI
 from typing import Dict, Any, List
-from config import Config
+from .config import Config
 
 class OutreachGenerator:
     def __init__(self):
@@ -202,3 +202,55 @@ Best regards,
         print(f"   Subject: {email_data.get('subject', 'No subject')}")
         print(f"   Body: {email_data.get('body', 'No body')[:200]}...")
         print("-" * 80)
+    
+    def generate_emails_from_airtable(self) -> List[Dict[str, Any]]:
+        """
+        Generate personalized emails from contacts stored in Airtable
+        """
+        from .airtable_api import AirtableAPI
+        
+        try:
+            # Get contacts from Airtable
+            airtable = AirtableAPI()
+            contacts = airtable.get_contacts_for_email_generation()
+            
+            if not contacts:
+                print("No contacts found in Airtable for email generation")
+                return []
+            
+            # Generate emails for each contact
+            emails = []
+            for contact in contacts:
+                try:
+                    # Convert Airtable contact format to lead format
+                    lead_data = {
+                        'first_name': contact.get('full_name', '').split()[0] if contact.get('full_name') else '',
+                        'last_name': ' '.join(contact.get('full_name', '').split()[1:]) if contact.get('full_name') else '',
+                        'email': contact.get('email', ''),
+                        'title': contact.get('title', ''),
+                        'company_name': contact.get('company', ''),
+                        'linkedin_url': contact.get('linkedin_url', '')
+                    }
+                    
+                    email_data = self.generate_personalized_email(lead_data)
+                    email_data['to'] = contact.get('email', '')
+                    email_data['contact_id'] = contact.get('id', '')
+                    
+                    emails.append(email_data)
+                    
+                    print(f"✅ Generated email for {contact.get('email', 'unknown')}")
+                    
+                except Exception as e:
+                    print(f"❌ Failed to generate email for {contact.get('email', 'unknown')}: {e}")
+                    continue
+            
+            # Store generated emails back in Airtable
+            if emails:
+                airtable.store_generated_emails(emails)
+                print(f"✅ Stored {len(emails)} generated emails in Airtable")
+            
+            return emails
+            
+        except Exception as e:
+            print(f"❌ Error generating emails from Airtable: {e}")
+            return []

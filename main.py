@@ -64,7 +64,62 @@ def run_pipeline(max_leads=5, min_score=0.6, preview_only=False, no_email=False,
         
         if demo:
             print("\n🎭 Running in DEMO mode with sample data...")
-            # Demo mode implementation would go here
+            
+            # Sample demo data
+            sample_leads = [
+                {
+                    'id': 'demo_1',
+                    'name': 'John Smith',
+                    'email': 'john.smith@techcorp.com',
+                    'title': 'CTO',
+                    'company': 'TechCorp Inc',
+                    'industry': 'Technology',
+                    'company_size': '100-500',
+                    'location': 'San Francisco, CA',
+                    'score': 0.85,
+                    'linkedin_url': 'https://linkedin.com/in/johnsmith'
+                },
+                {
+                    'id': 'demo_2', 
+                    'name': 'Sarah Johnson',
+                    'email': 'sarah.johnson@innovate.com',
+                    'title': 'VP Engineering',
+                    'company': 'Innovate Solutions',
+                    'industry': 'Software',
+                    'company_size': '50-200',
+                    'location': 'New York, NY',
+                    'score': 0.78,
+                    'linkedin_url': 'https://linkedin.com/in/sarahjohnson'
+                }
+            ]
+            
+            print(f"✓ Generated {len(sample_leads)} sample leads")
+            
+            # Demo email generation
+            sample_emails = [
+                {
+                    'to': 'john.smith@techcorp.com',
+                    'subject': 'Quick question about your tech stack',
+                    'body': 'Hi John,\n\nI noticed TechCorp is growing rapidly and I wanted to reach out about your technology infrastructure...'
+                },
+                {
+                    'to': 'sarah.johnson@innovate.com', 
+                    'subject': 'Quick question about your tech stack',
+                    'body': 'Hi Sarah,\n\nI came across Innovate Solutions and was impressed by your engineering team...'
+                }
+            ]
+            
+            print(f"✓ Generated {len(sample_emails)} sample emails")
+            
+            print("\n📧 Sample Email Preview:")
+            for i, email in enumerate(sample_emails, 1):
+                print(f"\n--- Email {i} ---")
+                print(f"To: {email['to']}")
+                print(f"Subject: {email['subject']}")
+                print(f"Body: {email['body'][:100]}...")
+            
+            print("\n🎉 Demo completed successfully!")
+            print("To run with real data, use: python main.py --preview-only")
             return
         
         # 2. Initialize components
@@ -76,48 +131,45 @@ def run_pipeline(max_leads=5, min_score=0.6, preview_only=False, no_email=False,
         gmail = GmailSender()
         print("✓ Components initialized")
         
-        # 3. Fetch leads from Apollo
-        print(f"\n3. Fetching up to {max_leads} leads from Apollo API...")
-        leads = apollo.fetch_leads(max_leads=max_leads, force_refresh=force_refresh)
-        if not leads:
-            print("❌ No leads fetched from Apollo API")
+        # 3. Fetch contacts from Apollo
+        print(f"\n3. Fetching up to {max_leads} contacts from Apollo API...")
+        contacts = apollo.fetch_leads(max_leads=max_leads, force_refresh=force_refresh, use_contact_list=True)
+        if not contacts:
+            print("❌ No contacts fetched from Apollo API")
             return
-        print(f"✓ Fetched {len(leads)} leads from Apollo API")
+        print(f"✓ Fetched {len(contacts)} contacts from Apollo API")
         
-        # 4. Process and rank leads
-        print(f"\n4. Processing and ranking leads (min score: {min_score})...")
-        ranked_leads = processor.process_leads(leads, min_score=min_score)
-        if not ranked_leads:
-            print("❌ No leads met the minimum score threshold")
-            return
-        print(f"✓ Processed and ranked {len(ranked_leads)} leads")
+        # 4. Store contacts in Airtable
+        print("\n4. Storing contacts in Airtable...")
+        airtable.push_contacts(contacts)
+        print("✓ Successfully stored contacts in Airtable")
         
-        # 5. Store leads in Airtable
-        print("\n5. Storing leads in Airtable...")
-        airtable.push_leads(ranked_leads)
-        print("✓ Successfully stored leads in Airtable")
-        
-        # 6. Generate personalized emails
-        print("\n6. Generating personalized outreach emails...")
-        emails = email_gen.generate_emails_for_leads(ranked_leads)
+        # 5. Generate personalized emails from Airtable contacts
+        print("\n5. Generating personalized outreach emails...")
+        emails = email_gen.generate_emails_from_airtable()
         print(f"✓ Generated {len(emails)} personalized emails")
         
-        # 7. Send emails (if not preview mode)
+        # 6. Store emails in Airtable
+        print("\n6. Storing generated emails in Airtable...")
+        airtable.store_generated_emails(emails)
+        print("✓ Successfully stored emails in Airtable")
+        
+        # 7. Email sending (separate step)
         if not preview_only and not no_email:
-            print(f"\n7. Sending {len(emails)} emails via Gmail...")
-            gmail.send_emails_to_leads(emails)
-            print("✓ Emails sent successfully")
+            print(f"\n7. Sending emails from Airtable via Gmail...")
+            gmail.send_emails_from_airtable()
+            print("✓ Email sending process initiated")
         elif preview_only:
-            print("\n7. Preview mode - emails not sent")
-            for i, email in enumerate(emails[:3], 1):  # Show first 3
-                print(f"\n--- Email {i} ---")
-                print(f"To: {email.get('to', 'N/A')}")
-                print(f"Subject: {email.get('subject', 'N/A')}")
-                print(f"Body: {email.get('body', 'N/A')[:200]}...")
+            print("\n7. Preview mode - emails stored in Airtable but not sent")
+            print("To send emails, run: python main.py --send-emails")
         
         print("\n" + "=" * 60)
         print("PIPELINE COMPLETED SUCCESSFULLY")
         print("=" * 60)
+        print("\n📋 Next Steps:")
+        print("1. Check Airtable to review generated emails")
+        print("2. Run 'python main.py --send-emails' to send emails")
+        print("3. Monitor email status in Airtable Emails table")
         
     except Exception as e:
         logger.error(f"Pipeline failed: {e}")
@@ -196,6 +248,12 @@ Examples:
         help="Enable verbose logging"
     )
     
+    parser.add_argument(
+        "--send-emails",
+        action="store_true",
+        help="Send emails from Airtable Emails table"
+    )
+    
     args = parser.parse_args()
     
     # Set logging level
@@ -212,6 +270,16 @@ Examples:
         apollo = ApolloAPI()
         apollo.clear_cache()
         print("✓ Cache cleared successfully")
+        return
+    
+    # Handle email sending
+    if args.send_emails:
+        print("=" * 60)
+        print("SENDING EMAILS FROM AIRTABLE")
+        print("=" * 60)
+        gmail = GmailSender()
+        results = gmail.send_emails_from_airtable()
+        print(f"✓ Email sending complete: {len([r for r in results if r['success']])}/{len(results)} successful")
         return
     
     # Run the pipeline

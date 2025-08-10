@@ -20,8 +20,19 @@ class Config:
     AIRTABLE_TABLES = os.getenv('AIRTABLE_TABLES', 'Leads').split(',')  # Multiple tables (comma-separated)
     
     # Gmail Configuration
-    GMAIL_CREDENTIALS_FILE = os.getenv('GMAIL_CREDENTIALS_FILE', 'gmail_credentials.json')
-    GMAIL_TOKEN_FILE = os.getenv('GMAIL_TOKEN_FILE', 'gmail_token.json')
+    _gmail_creds_env = os.getenv('GMAIL_CREDENTIALS_FILE', 'gmail_credentials.json')
+    _gmail_token_env = os.getenv('GMAIL_TOKEN_FILE', 'gmail_token.json')
+    
+    # If the env var is just a filename, make it a full path
+    if not os.path.isabs(_gmail_creds_env):
+        GMAIL_CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'credentials', _gmail_creds_env)
+    else:
+        GMAIL_CREDENTIALS_FILE = _gmail_creds_env
+        
+    if not os.path.isabs(_gmail_token_env):
+        GMAIL_TOKEN_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'credentials', _gmail_token_env)
+    else:
+        GMAIL_TOKEN_FILE = _gmail_token_env
     SENDER_EMAIL = os.getenv('SENDER_EMAIL')
     
     # Lead Generation Settings
@@ -37,7 +48,7 @@ class Config:
     
     # Email Settings
     EMAIL_SUBJECT = "Quick question about your tech stack"
-    MAX_LEADS_TO_PROCESS = 5  # Reduced from 10 to 5 for MVP
+    MAX_LEADS_TO_PROCESS = 2  # Limited to 2 contacts for testing
     
     # Pipeline Settings
     PREVIEW_ONLY = os.getenv('PREVIEW_ONLY', 'true').lower() == 'true'  # Default to preview mode

@@ -1,7 +1,7 @@
 import requests
 import time
 from typing import List, Dict, Any, Optional
-from config import Config
+from .config import Config
 
 
 class AirtableAPI:
@@ -252,3 +252,189 @@ class AirtableAPI:
             print(f"❌ Failed to connect to tables: {', '.join(failed_tables)}")
         
         return all_successful
+    
+    def push_contacts(self, contacts: List[Dict[str, Any]], clear_existing: bool = False) -> bool:
+        """
+        Push contacts to Airtable Contacts table
+        """
+        try:
+            print(f"Pushing {len(contacts)} contacts to Airtable...")
+            
+            # Prepare contact data for Airtable
+            contact_records = []
+            for contact in contacts:
+                record_data = {
+                    "fields": {
+                        "Full Name": f"{contact.get('first_name', '')} {contact.get('last_name', '')}".strip(),
+                        "Email": contact.get('email', ''),
+                        "Title / Role": contact.get('title', ''),
+                        "LinkedIn Profile": contact.get('linkedin_url', ''),
+                        "Company": contact.get('company_name', ''),
+                        "Status": "New"
+                    }
+                }
+                contact_records.append(record_data)
+            
+            # Write to Contacts table
+            return self.write_records_to_table("Contacts", contact_records)
+            
+        except Exception as e:
+            print(f"❌ Failed to push contacts: {e}")
+            return False
+    
+    def write_records_to_table(self, table_name: str, records: List[Dict[str, Any]]) -> bool:
+        """
+        Write records to a specific Airtable table
+        """
+        try:
+            url = f"{self.base_url}/{table_name}"
+            
+            # Airtable allows up to 10 records per request
+            batch_size = 10
+            for i in range(0, len(records), batch_size):
+                batch = records[i:i + batch_size]
+                
+                response = requests.post(
+                    url,
+                    headers=self.headers,
+                    json={"records": batch}
+                )
+                
+                if response.status_code != 200:
+                    print(f"❌ Failed to write batch to {table_name}: {response.status_code}")
+                    return False
+                
+                print(f"✅ Wrote batch {i//batch_size + 1} to {table_name}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error writing to {table_name}: {e}")
+            return False
+    
+    def get_contacts_for_email_generation(self) -> List[Dict[str, Any]]:
+        """
+        Get contacts from Airtable that need email generation
+        """
+        try:
+            url = f"{self.base_url}/Contacts"
+            params = {
+                'filterByFormula': '{Status} = "New"'
+            }
+            
+            response = requests.get(url, headers=self.headers, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
+                contacts = []
+                for record in data.get('records', []):
+                    contact = {
+                        'id': record['id'],
+                        'full_name': record['fields'].get('Full Name', ''),
+                        'email': record['fields'].get('Email', ''),
+                        'title': record['fields'].get('Title / Role', ''),
+                        'company': record['fields'].get('Company', ''),
+                        'linkedin_url': record['fields'].get('LinkedIn Profile', '')
+                    }
+                    contacts.append(contact)
+                
+                print(f"✅ Retrieved {len(contacts)} contacts from Airtable for email generation")
+                return contacts
+            else:
+                print(f"❌ Failed to get contacts: {response.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"❌ Error getting contacts: {e}")
+            return []
+    
+    def store_generated_emails(self, emails: List[Dict[str, Any]]) -> bool:
+        """
+        Store generated emails in Airtable Emails table
+        """
+        try:
+            print(f"Storing {len(emails)} generated emails in Airtable...")
+            
+            email_records = []
+            for email in emails:
+                record_data = {
+                    "fields": {
+                        "To": email.get('to', ''),
+                        "Subject": email.get('subject', ''),
+                        "Body": email.get('body', ''),
+                        "Send Now": False,  # Manual control - user must check this to send
+                        "Send Result": "Pending"
+                    }
+                }
+                email_records.append(record_data)
+            
+            return self.write_records_to_table("Emails", email_records)
+            
+        except Exception as e:
+            print(f"❌ Failed to store emails: {e}")
+            return False
+    
+    def get_emails_to_send(self) -> List[Dict[str, Any]]:
+        """
+        Get emails from Airtable that are ready to send
+        """
+        try:
+            url = f"{self.base_url}/Emails"
+            params = {
+                'filterByFormula': 'AND({Send Now} = TRUE(), {Send Result} = "Pending")'
+            }
+            
+            response = requests.get(url, headers=self.headers, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
+                emails = []
+                for record in data.get('records', []):
+                    email = {
+                        'id': record['id'],
+                        'to': record['fields'].get('To', ''),
+                        'subject': record['fields'].get('Subject', ''),
+                        'body': record['fields'].get('Body', '')
+                    }
+                    emails.append(email)
+                
+                print(f"✅ Retrieved {len(emails)} emails ready to send from Airtable")
+                return emails
+            else:
+                print(f"❌ Failed to get emails: {response.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"❌ Error getting emails: {e}")
+            return []
+    
+    def update_email_status(self, email_id: str, success: bool) -> bool:
+        """
+        Update email status in Airtable after sending
+        """
+        try:
+            url = f"{self.base_url}/Emails/{email_id}"
+            
+            update_data = {
+                "fields": {
+                    "Send Now": False,
+                    "Send Result": "Sent" if success else "Failed",
+                    "Sent At": time.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                }
+            }
+            
+            if not success:
+                update_data["fields"]["Error"] = "Failed to send email"
+            
+            response = requests.patch(url, headers=self.headers, json=update_data)
+            
+            if response.status_code == 200:
+                print(f"✅ Updated email status for {email_id}")
+                return True
+            else:
+                print(f"❌ Failed to update email status: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Error updating email status: {e}")
+            return False

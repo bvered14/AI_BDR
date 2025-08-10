@@ -74,10 +74,10 @@ GMAIL_CREDENTIALS_FILE=path/to/gmail_credentials.json
 GMAIL_TOKEN_FILE=path/to/gmail_token.json
 
 # Pipeline Configuration
-MAX_LEADS_TO_PROCESS=5
-JOB_TITLES=["VP Engineering", "CTO", "Head of DevOps", "Engineering Manager"]
-COMPANY_SIZE_MIN=10
-COMPANY_SIZE_MAX=1000
+MAX_LEADS_TO_PROCESS=2
+JOB_TITLES=["CTO", "Head of Security", "Chief Technology Officer", "VP of Engineering"]
+COMPANY_SIZE_MIN=50
+COMPANY_SIZE_MAX=500
 REGIONS=["North America", "Europe"]
 ```
 
@@ -98,36 +98,34 @@ airtable = AirtableAPI()
 email_gen = OutreachGenerator()
 gmail = GmailSender()
 
-# Fetch leads from Apollo
-leads = apollo.fetch_leads(max_leads=10)
+# Complete pipeline: Apollo → Airtable → OpenAI → Airtable → Gmail
+# 1. Fetch contacts from Apollo contact list
+contacts = apollo.fetch_leads(max_leads=2, use_contact_list=True)
 
-# Store in Airtable
-airtable.push_leads(leads)
+# 2. Store contacts in Airtable
+airtable.push_contacts(contacts)
 
-# Generate personalized emails
-emails = email_gen.generate_emails_for_leads(leads)
+# 3. Generate personalized emails from Airtable contacts
+emails = email_gen.generate_emails_from_airtable()
 
-# Send emails
-gmail.send_emails_to_leads(emails)
+# 4. Send emails from Airtable (after marking them for sending)
+gmail.send_emails_from_airtable()
 ```
 
 ### Command Line Interface
 
 ```bash
-# Run the complete pipeline
-python main.py --max-leads 10
+# Run the complete pipeline (Apollo → Airtable → OpenAI → Airtable → Gmail)
+python main.py --max-leads 2
 
 # Preview mode (no emails sent)
-python main.py --max-leads 5 --preview-only
+python main.py --max-leads 2 --preview-only
 
-# Send queued emails
-python send_queue.py
+# Demo mode (sample data, no API calls)
+python main.py --demo
 
-# Check cache status
-python cache_manager.py status
-
-# Clear cache
-python cache_manager.py clear
+# Send emails from Airtable (after marking them for sending)
+python main.py --send-emails
 ```
 
 ## 📚 Documentation

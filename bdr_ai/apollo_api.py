@@ -3,7 +3,7 @@ import time
 import json
 import pathlib
 from typing import List, Dict, Any
-from config import Config
+from .config import Config
 
 class ApolloAPI:
     def __init__(self):
@@ -221,6 +221,22 @@ class ApolloAPI:
             json=search_params
         )
     
+    def search_contacts(self, page: int = 1, per_page: int = 25) -> Dict[str, Any]:
+        """
+        Search for contacts in your Apollo contact list
+        Based on Apollo API documentation: https://docs.apollo.io/reference/people-search
+        """
+        search_params = {
+            "page": page,
+            "per_page": per_page
+        }
+        
+        return self._make_request(
+            'POST',
+            f"{self.base_url}/contacts/search",
+            json=search_params
+        )
+    
     def get_company_info(self, organization_id: str) -> Dict[str, Any]:
         """
         Get detailed company information
@@ -235,7 +251,7 @@ class ApolloAPI:
             params=params
         )
     
-    def fetch_leads(self, max_leads: int = 10, force_refresh: bool = False) -> List[Dict[str, Any]]:
+    def fetch_leads(self, max_leads: int = 10, force_refresh: bool = False, use_contact_list: bool = True) -> List[Dict[str, Any]]:
         """
         Fetch leads with pagination until max_leads is reached
         Uses cache if available and valid, unless force_refresh is True
@@ -248,7 +264,10 @@ class ApolloAPI:
                 return cached_leads[:max_leads]
         
         # If no cache or force refresh, fetch from API
-        print(f"🔍 Fetching up to {max_leads} leads from Apollo API...")
+        if use_contact_list:
+            print(f"📋 Fetching up to {max_leads} contacts from your Apollo contact list...")
+        else:
+            print(f"🔍 Fetching up to {max_leads} leads from Apollo API...")
         
         all_leads = []
         page = 1
@@ -257,36 +276,60 @@ class ApolloAPI:
         while len(all_leads) < max_leads:
             print(f"   📄 Fetching page {page}...")
             
-            response = self.search_people(
-                job_titles=Config.JOB_TITLES,
-                company_size_min=Config.COMPANY_SIZE_MIN,
-                company_size_max=Config.COMPANY_SIZE_MAX,
-                regions=Config.REGIONS,
-                page=page,
-                per_page=per_page
-            )
-            
-            people = response.get("people", [])
-            if not people:
-                print(f"   ✅ No more results found (page {page})")
-                break
-            
-            print(f"   📊 Found {len(people)} people on page {page}")
-            
-            for person in people:
-                if len(all_leads) >= max_leads:
+            if use_contact_list:
+                response = self.search_contacts(page=page, per_page=per_page)
+                contacts = response.get("contacts", [])
+                if not contacts:
+                    print(f"   ✅ No more contacts found (page {page})")
                     break
                 
-                # Get company details
-                org_id = person.get("organization", {}).get("id")
-                company_info = {}
-                if org_id:
-                    company_info = self.get_company_info(org_id)
+                print(f"   📊 Found {len(contacts)} contacts on page {page}")
                 
-                # Process and add lead
-                lead = self._process_person_to_lead(person, company_info)
-                if lead:
-                    all_leads.append(lead)
+                for contact in contacts:
+                    if len(all_leads) >= max_leads:
+                        break
+                    
+                    # Get company details if available
+                    org_id = contact.get("organization", {}).get("id")
+                    company_info = {}
+                    if org_id:
+                        company_info = self.get_company_info(org_id)
+                    
+                    # Process and add lead
+                    lead = self._process_contact_to_lead(contact, company_info)
+                    if lead:
+                        all_leads.append(lead)
+            else:
+                response = self.search_people(
+                    job_titles=Config.JOB_TITLES,
+                    company_size_min=Config.COMPANY_SIZE_MIN,
+                    company_size_max=Config.COMPANY_SIZE_MAX,
+                    regions=Config.REGIONS,
+                    page=page,
+                    per_page=per_page
+                )
+                
+                people = response.get("people", [])
+                if not people:
+                    print(f"   ✅ No more results found (page {page})")
+                    break
+                
+                print(f"   📊 Found {len(people)} people on page {page}")
+                
+                for person in people:
+                    if len(all_leads) >= max_leads:
+                        break
+                    
+                    # Get company details
+                    org_id = person.get("organization", {}).get("id")
+                    company_info = {}
+                    if org_id:
+                        company_info = self.get_company_info(org_id)
+                    
+                    # Process and add lead
+                    lead = self._process_person_to_lead(person, company_info)
+                    if lead:
+                        all_leads.append(lead)
             
             # Check if we have more pages
             pagination = response.get("pagination", {})
@@ -331,6 +374,32 @@ class ApolloAPI:
         
         return lead_data
     
+    def _process_contact_to_lead(self, contact: Dict[str, Any], company_info: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process a contact from Apollo contact list into a standardized lead format
+        """
+        if not contact:
+            return {}
+        
+        lead_data = {
+            "first_name": contact.get("first_name", ""),
+            "last_name": contact.get("last_name", ""),
+            "email": contact.get("email", ""),
+            "title": contact.get("title", ""),
+            "company_name": contact.get("organization", {}).get("name", ""),
+            "company_size": contact.get("organization", {}).get("employee_count", 0),
+            "company_industry": contact.get("organization", {}).get("industry", ""),
+            "company_location": contact.get("organization", {}).get("location", ""),
+            "linkedin_url": contact.get("linkedin_url", ""),
+            "apollo_id": contact.get("id", ""),
+            "company_domain": contact.get("organization", {}).get("domain", ""),
+            "company_revenue": company_info.get("organization", {}).get("estimated_annual_revenue", ""),
+            "company_founded": company_info.get("organization", {}).get("founded_year", ""),
+            "region": self._determine_region(contact.get("organization", {}).get("location", ""))
+        }
+        
+        return lead_data
+    
     def _determine_region(self, location: str) -> str:
         """
         Determine region based on location
@@ -353,3 +422,26 @@ class ApolloAPI:
             return "Europe"
         
         return "Other"
+    
+    def _calculate_lead_score(self, person: Dict[str, Any], company_info: Dict[str, Any]) -> float:
+        """
+        Calculate a lead score based on configurable weights
+        """
+        score = 0.0
+        
+        # Industry scoring
+        industry = person.get("organization", {}).get("industry", "").lower()
+        if industry in ["technology", "software", "saas", "fintech", "healthtech"]:
+            score += Config.INDUSTRY_WEIGHT
+        
+        # Company size scoring
+        company_size = person.get("organization", {}).get("employee_count", 0)
+        if Config.COMPANY_SIZE_MIN <= company_size <= Config.COMPANY_SIZE_MAX:
+            score += Config.COMPANY_SIZE_WEIGHT
+        
+        # Region scoring
+        region = self._determine_region(person.get("organization", {}).get("location", ""))
+        if region in Config.REGIONS:
+            score += Config.REGION_WEIGHT
+        
+        return min(score, 1.0)  # Cap at 1.0

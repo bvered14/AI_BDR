@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from config import Config
+from .config import Config
 
 class LeadProcessor:
     def __init__(self):
