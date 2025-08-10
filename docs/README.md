@@ -53,7 +53,7 @@ pre-commit install
 
 1. **Copy the environment template:**
 ```bash
-cp env_example.txt .env
+cp config/env_example.txt .env
 ```
 
 2. **Fill in your API credentials:**
@@ -70,8 +70,8 @@ AIRTABLE_TABLES=["Companies", "Contacts", "Emails"]
 
 # Gmail Configuration
 SENDER_EMAIL=your_email@gmail.com
-GMAIL_CREDENTIALS_FILE=path/to/gmail_credentials.json
-GMAIL_TOKEN_FILE=path/to/gmail_token.json
+GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json
+GMAIL_TOKEN_FILE=credentials/gmail_token.json
 
 # Pipeline Configuration
 MAX_LEADS_TO_PROCESS=5
@@ -121,13 +121,13 @@ python main.py --max-leads 10
 python main.py --max-leads 5 --preview-only
 
 # Send queued emails
-python send_queue.py
+python utils/send_queue.py
 
 # Check cache status
-python cache_manager.py status
+python utils/cache_manager.py status
 
 # Clear cache
-python cache_manager.py clear
+python utils/cache_manager.py clear
 ```
 
 ## 📚 Documentation
@@ -203,17 +203,16 @@ bdr-ai/
 │   ├── outreach.py        # AI email generation
 │   └── process_leads.py   # Lead processing
 ├── tests/                 # Test suite
-│   ├── __init__.py
-│   ├── test_config.py
-│   ├── test_apollo_api.py
-│   └── ...
-├── lambda_functions/      # AWS Lambda functions
+├── scripts/               # Development tools
 ├── docs/                  # Documentation
+├── config/                # Configuration files
+├── utils/                 # Utility scripts
+├── credentials/           # API credentials
+├── lambda_functions/      # AWS Lambda functions
 ├── setup.py              # Package setup
+├── pyproject.toml        # Modern Python packaging
 ├── requirements.txt      # Dependencies
-├── pytest.ini           # Test configuration
-├── .pre-commit-config.yaml # Code quality hooks
-└── README.md             # This file
+└── main.py               # Main entry point
 ```
 
 ## 🤝 Contributing
@@ -234,7 +233,7 @@ bdr-ai/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 

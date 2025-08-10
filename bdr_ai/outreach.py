@@ -8,7 +8,12 @@ class OutreachGenerator:
         if Config.OPENAI_API_KEY:
             try:
                 # For newer OpenAI library versions (1.3+)
-                self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+                # Create client with minimal parameters to avoid proxy issues
+                self.client = OpenAI(
+                    api_key=Config.OPENAI_API_KEY,
+                    # Remove any proxy configuration that might be causing issues
+                )
+                print("✅ OpenAI client initialized successfully")
             except Exception as e:
                 # Fallback for any initialization issues
                 print(f"Warning: OpenAI client initialization issue: {e}")

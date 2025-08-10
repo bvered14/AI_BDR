@@ -1,3 +1,6 @@
+# BDR AI - Environment Variables Template
+# Copy this file to .env and fill in your actual values
+
 # API Keys
 APOLLO_API_KEY=your_apollo_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
@@ -10,12 +13,8 @@ AIRTABLE_TABLES=["Companies", "Contacts", "Emails"]
 
 # Gmail Configuration
 SENDER_EMAIL=your_email@gmail.com
-GMAIL_CREDENTIALS_FILE=path/to/gmail_credentials.json
-GMAIL_TOKEN_FILE=path/to/gmail_token.json
-
-# For Lambda deployment - Base64 encoded credentials
-GMAIL_CREDENTIALS_JSON=base64_encoded_gmail_credentials_json
-GMAIL_TOKEN_JSON=base64_encoded_gmail_token_json
+GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json
+GMAIL_TOKEN_FILE=credentials/gmail_token.json
 
 # Pipeline Configuration
 MAX_LEADS_TO_PROCESS=5

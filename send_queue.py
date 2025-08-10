@@ -24,18 +24,36 @@ except ImportError as e:
 def get_pending_emails() -> List[Dict[str, Any]]:
     """Get emails that are marked as 'Send Now' in Airtable"""
     try:
-        airtable = AirtableAPI()
-        # Get records where 'Send Now' is checked
-        records = airtable.get_records(
-            filter_by_formula="{Send Now} = 1"
+        import requests
+        emails_api = AirtableAPI("Emails")
+        
+        # Get all emails from the Emails table
+        response = requests.get(
+            f"{emails_api.base_url}/Emails",
+            headers=emails_api.headers,
+            params={'maxRecords': 50}
         )
         
-        if not records:
+        if response.status_code != 200:
+            print(f"❌ Failed to fetch emails: {response.status_code}")
+            return []
+        
+        data = response.json()
+        all_emails = data.get('records', [])
+        
+        # Filter for emails marked as "Send Now"
+        pending_emails = []
+        for email_record in all_emails:
+            fields = email_record.get('fields', {})
+            if fields.get('Send Now', False):  # Check if Send Now is True
+                pending_emails.append(email_record)
+        
+        if not pending_emails:
             print("ℹ️  No emails marked for sending in Airtable")
             return []
         
-        print(f"📧 Found {len(records)} emails marked for sending")
-        return records
+        print(f"📧 Found {len(pending_emails)} emails marked for sending")
+        return pending_emails
         
     except Exception as e:
         print(f"❌ Error fetching pending emails: {e}")
@@ -59,9 +77,9 @@ def send_emails(emails: List[Dict[str, Any]], dry_run: bool = False) -> Dict[str
             try:
                 # Extract email data
                 email_data = email_record.get('fields', {})
-                to_email = email_data.get('Email')
-                subject = email_data.get('Subject', Config.EMAIL_SUBJECT)
-                body = email_data.get('Email Body')
+                to_email = email_data.get('To')  # Changed from 'Email' to 'To'
+                subject = email_data.get('Subject', 'Quick question about your business')
+                body = email_data.get('Body')  # Changed from 'Email Body' to 'Body'
                 
                 if not to_email:
                     error_msg = f"Record {i}: Missing email address"
@@ -82,15 +100,14 @@ def send_emails(emails: List[Dict[str, Any]], dry_run: bool = False) -> Dict[str
                     gmail_sender.send_email(to_email, subject, body)
                     
                     # Update Airtable to mark as sent
-                    airtable = AirtableAPI()
-                    airtable.update_record(
-                        email_record['id'],
-                        {
-                            'Send Now': False,
-                            'Sent': True,
-                            'Sent Date': airtable.get_current_timestamp()
+                    emails_api = AirtableAPI("Emails")
+                    update_data = {
+                        "fields": {
+                            "Send Now": False,
+                            "Send Result": "Sent Successfully"
                         }
-                    )
+                    }
+                    emails_api.upsert_record(update_data)
                     
                     results["sent"] += 1
                     print(f"✅ Email sent successfully to {to_email}")
