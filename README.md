@@ -5,7 +5,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Tests](https://github.com/yourusername/bdr-ai/workflows/Tests/badge.svg)](https://github.com/yourusername/bdr-ai/actions)
 
-A comprehensive B2B lead generation and outreach automation system that integrates Apollo API, Airtable, OpenAI, and Gmail to create personalized outreach campaigns.
+A comprehensive B2B lead generation and outreach automation system that integrates Apollo API, Airtable, OpenAI, and Gmail to create personalized outreach campaigns. Built with extensible architecture to support additional data sources like LinkedIn Sales Navigator, Hunter.io, and more.
 
 ## 🚀 Features
 

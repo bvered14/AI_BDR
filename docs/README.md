@@ -17,15 +17,22 @@ A comprehensive B2B lead generation and outreach automation system that integrat
 - **Caching**: Efficient API usage with intelligent caching
 - **AWS Lambda**: Serverless deployment ready
 - **Rate Limiting**: Built-in protection against API limits
+- **Extensible Architecture**: Easy integration of additional data sources (LinkedIn Sales Navigator, Hunter.io, etc.)
 
 ## 📋 Requirements
 
 - Python 3.8+
-- Apollo API account
+- Apollo API account (or other lead generation service)
 - Airtable account with Personal Access Token
 - OpenAI API account
 - Gmail account with API access
 - AWS account (for Lambda deployment)
+
+### Future Integrations
+- LinkedIn Sales Navigator API
+- Hunter.io for email finding
+- ZoomInfo API
+- Clearbit for company enrichment
 
 ## 🛠️ Installation
 
@@ -188,6 +195,13 @@ mypy bdr_ai/
                    │   Main      │
                    │ Pipeline    │
                    └─────────────┘
+
+Future Integrations:
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   LinkedIn  │    │   Hunter    │    │   ZoomInfo  │
+│   Sales     │    │     .io     │    │     API     │
+│ Navigator   │    │             │    │             │
+└─────────────┘    └─────────────┘    └─────────────┘
 ```
 
 ## 📦 Project Structure

@@ -1,0 +1,119 @@
+service: bdr-ai
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    APOLLO_API_KEY: ${env:APOLLO_API_KEY}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    AIRTABLE_PAT: ${env:AIRTABLE_PAT}
+    AIRTABLE_BASE_ID: ${env:AIRTABLE_BASE_ID}
+    AIRTABLE_TABLES: ${env:AIRTABLE_TABLES, '["Companies", "Contacts", "Emails"]'}
+    SENDER_EMAIL: ${env:SENDER_EMAIL}
+    GMAIL_CREDENTIALS_FILE: ${env:GMAIL_CREDENTIALS_FILE, 'credentials/gmail_credentials.json'}
+    GMAIL_TOKEN_FILE: ${env:GMAIL_TOKEN_FILE, 'credentials/gmail_token.json'}
+    MAX_LEADS_TO_PROCESS: ${env:MAX_LEADS, 5}
+    JOB_TITLES: ${env:JOB_TITLES, '["VP Engineering", "CTO", "Head of DevOps", "Engineering Manager"]'}
+    COMPANY_SIZE_MIN: ${env:COMPANY_SIZE_MIN, 10}
+    COMPANY_SIZE_MAX: ${env:COMPANY_SIZE_MAX, 1000}
+    REGIONS: ${env:REGIONS, '["North America", "Europe"]'}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
+
+functions:
+  fetch-leads:
+    handler: lambda_functions/fetch_leads.handler
+    description: Fetch leads from Apollo API and store in Airtable
+    timeout: 300
+    memorySize: 512
+    events:
+      - schedule: rate(1 day)
+    environment:
+      FUNCTION_NAME: fetch-leads
+
+  process-leads:
+    handler: lambda_functions/process_leads.handler
+    description: Process and score leads from Airtable
+    timeout: 300
+    memorySize: 512
+    events:
+      - schedule: rate(1 day)
+    environment:
+      FUNCTION_NAME: process-leads
+
+  generate-emails:
+    handler: lambda_functions/generate_emails.handler
+    description: Generate personalized emails using OpenAI
+    timeout: 300
+    memorySize: 1024
+    events:
+      - schedule: rate(1 day)
+    environment:
+      FUNCTION_NAME: generate-emails
+
+  send-emails:
+    handler: lambda_functions/send_emails.handler
+    description: Send emails via Gmail API
+    timeout: 300
+    memorySize: 512
+    events:
+      - schedule: rate(1 hour)
+    environment:
+      FUNCTION_NAME: send-emails
+
+  run-pipeline:
+    handler: lambda_functions/run_pipeline.handler
+    description: Orchestrate the complete BDR pipeline
+    timeout: 900
+    memorySize: 1024
+    events:
+      - schedule: rate(1 day)
+    environment:
+      FUNCTION_NAME: run-pipeline
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    layer:
+      name: python-deps
+      description: Python dependencies for BDR AI
+    noDeploy:
+      - coverage
+      - pytest
+      - black
+      - flake8
+      - isort
+      - mypy
+      - pre-commit
+
+resources:
+  Resources:
+    ErrorAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:service}-${self:provider.stage}-error-alarm
+        AlarmDescription: Alert when Lambda functions have errors
+        MetricName: Errors
+        Namespace: AWS/Lambda
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 1
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        Dimensions:
+          - Name: FunctionName
+            Value: ${self:service}-${self:provider.stage}-fetch-leads
+          - Name: FunctionName
+            Value: ${self:service}-${self:provider.stage}-send-emails
