@@ -18,6 +18,12 @@ A comprehensive B2B lead generation and outreach automation system that integrat
 - **AWS Lambda**: Serverless deployment ready
 - **Rate Limiting**: Built-in protection against API limits
 
+## 🖼️ Demo
+
+![BDR AI Platform Interface](docs/images/bdr-ai-interface.png)
+
+*The BDR AI platform showing email generation and management in Airtable - emails are generated with personalized content and can be manually marked for sending*
+
 ## 📋 Requirements
 
 - Python 3.8+
@@ -65,13 +71,14 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Airtable Configuration
 AIRTABLE_PAT=your_airtable_personal_access_token_here
 AIRTABLE_BASE_ID=your_airtable_base_id_here
-AIRTABLE_TABLE_NAME=Contacts
 AIRTABLE_TABLES=["Companies", "Contacts", "Emails"]
 
 # Gmail Configuration
 SENDER_EMAIL=your_email@gmail.com
 GMAIL_CREDENTIALS_FILE=path/to/gmail_credentials.json
 GMAIL_TOKEN_FILE=path/to/gmail_token.json
+
+**Note:** App is in testing; add your account under OAuth consent → Test users to avoid the common 403 error. See [Gmail Setup Guide](README_LAMBDA.md) for detailed instructions.
 
 # Pipeline Configuration
 MAX_LEADS_TO_PROCESS=2
@@ -245,8 +252,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/bdr-ai/issues)
 - **Documentation**: [Wiki](https://github.com/yourusername/bdr-ai/wiki)
-- **Email**: your.email@example.com
+- **Email**: bar@baronmor.com
 
 ---
 
-**Made with ❤️ for B2B sales teams**
+**Made for B2B sales teams**
