@@ -20,7 +20,7 @@ A comprehensive B2B lead generation and outreach automation system that integrat
 
 ## 🖼️ Demo
 
-![BDR AI Platform Interface](docs/images/bdr-ai-interface.png)
+![BDR AI Platform Interface](docs/images/Airtable.png)
 
 *The BDR AI platform showing email generation and management in Airtable - emails are generated with personalized content and can be manually marked for sending*
 
